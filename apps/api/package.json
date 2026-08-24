@@ -1,0 +1,11 @@
+{
+  "name": "api",
+  "private": true,
+  "scripts": {
+    "dev": "uv run uvicorn mecha_api.main:app --reload --port 8000",
+    "check": "uv run ruff format --check . && uv run ruff check . && uv run ty check",
+    "check:fix": "uv run ruff format . && uv run ruff check --fix .",
+    "test": "uv run pytest tests",
+    "build": "uv run python -m mecha_api.export openapi.json"
+  }
+}

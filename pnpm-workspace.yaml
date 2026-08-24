@@ -1,0 +1,46 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools/*
+
+catalogMode: prefer
+
+catalog:
+  "@types/node": ^24
+  typescript: ^7.0.2
+  # Bump these two together. A split pair fails at startup. Dependabot misses
+  # the coupling through the npm: alias, so update both by hand.
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.9
+  vite-plus: 0.2.9
+overrides:
+  vite: "catalog:"
+peerDependencyRules:
+  allowAny:
+    - vite
+  allowedVersions:
+    vite: "*"
+
+# Supply-chain policy
+# New versions must be at least 4 days old before pnpm will resolve them.
+minimumReleaseAge: 5760
+
+# No dependency may run lifecycle (install/postinstall) scripts unless it is
+# explicitly reviewed and listed in allowBuilds. Install fails loudly instead
+# of silently skipping unreviewed build scripts.
+strictDepBuilds: true
+# sharp: Next.js image optimization — native binary, reviewed and trusted.
+allowBuilds: { sharp: true }
+
+# Transitive dependencies must come from trusted registries — no git or
+# tarball URLs below the direct-dependency level.
+blockExoticSubdeps: true
+
+# Refuse versions whose publisher trust level regressed (e.g. provenance
+# silently dropped between releases).
+trustPolicy: no-downgrade
+
+# Keep node_modules in sync with the lockfile before running scripts.
+verifyDepsBeforeRun: install
+
+# Fail install on an engines mismatch (Node version) instead of warning.
+engineStrict: true

@@ -1,0 +1,26 @@
+{
+  "name": "mecha",
+  "private": true,
+  "license": "MIT",
+  "author": "builtbystef",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"pnpm --filter api dev\" \"pnpm --filter web dev\"",
+    "check": "vp check && vp run -r check",
+    "check:fix": "vp check --fix && vp run -r check:fix",
+    "test": "vp test && vp run -r test",
+    "build": "vp run -r build",
+    "ci": "pnpm check && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "concurrently": "^10.0.5",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.17.0"
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig/browser.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    // The generated @mecha/api-client runtime is compiled as part of this app
+    // (transpilePackages) and doesn't satisfy exactOptionalPropertyTypes.
+    "exactOptionalPropertyTypes": false,
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }]
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}
