@@ -115,16 +115,16 @@ function name.
 
 shadcn/ui with the Base UI (`@base-ui/react`) primitives, `base-nova` style:
 components are vendored source under `apps/web/components/ui`, added via
-`npx shadcn@latest add <component>`. One deviation from a stock install:
-`app/shadcn.css` is a vendored copy of the `shadcn` package's `tailwind.css`
-(keyframes + data-attribute variants) because that package's transitive
-dependencies fail this workspace's pnpm trust policy — see the file header.
+`npx shadcn@latest add <component>`. The `shadcn` package itself is a runtime
+dependency (its `tailwind.css` is imported in `app/globals.css`); it needs a
+`trustPolicyExclude` for `semver` — see `pnpm-workspace.yaml`.
 
 ## Supply-chain policy
 
 `pnpm-workspace.yaml` carries the full policy: `minimumReleaseAge` (4 days),
 `strictDepBuilds` + explicit `allowBuilds` (only `sharp`),
-`blockExoticSubdeps`, `trustPolicy: no-downgrade`, `verifyDepsBeforeRun`, and
+`blockExoticSubdeps`, `trustPolicy: no-downgrade` (with a reviewed
+`trustPolicyExclude` for `semver`), `verifyDepsBeforeRun`, and
 `engineStrict`. The Python side mirrors it: `uv.lock` is hash-pinned and CI
 installs with `uv sync --locked`; Dependabot covers npm, uv, and GitHub
 Actions weekly with a 4-day cooldown.

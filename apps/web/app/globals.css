@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* Vendored copy of shadcn/tailwind.css (see the header in that file) so the
-   `shadcn` package is not a runtime dependency. */
-@import "./shadcn.css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 

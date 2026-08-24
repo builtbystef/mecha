@@ -17,6 +17,7 @@
     "postcss": "catalog:",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "shadcn": "catalog:",
     "tailwind-merge": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:"
