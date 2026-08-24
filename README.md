@@ -93,6 +93,15 @@ Completed runs are appended to SQLite (`store.py`) as
 `message_history=` on the next turn. The UI's message list is a projection of
 that same history, so refreshes reconstruct the chat exactly.
 
+On the client, [TanStack Query](https://tanstack.com/query/latest) owns the
+server state: the conversation list and message history are queries (shared
+`queryOptions` in `lib/queries.ts`, provider in `app/providers.tsx`), and the
+SSE stream writes into the message cache with `setQueryData`, so fetched and
+streamed data render through one path. Mutations invalidate the conversation
+list — titles are assigned server-side from the first message. The messages
+query is disabled while a stream is in flight so a background refetch can't
+clobber the not-yet-persisted optimistic messages.
+
 ## The typed API boundary
 
 `apps/api`'s `build` dumps the FastAPI OpenAPI schema to `openapi.json`;

@@ -10,6 +10,7 @@
     "@base-ui/react": "catalog:",
     "@mecha/api-client": "workspace:*",
     "@tailwindcss/postcss": "catalog:",
+    "@tanstack/react-query": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "lucide-react": "catalog:",

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { Providers } from "@/app/providers";
+
 import "./globals.css";
 
 // globals.css maps the `font-sans` utility to this variable.
@@ -15,7 +17,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={sans.variable}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

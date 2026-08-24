@@ -23,8 +23,8 @@ export default function Home() {
       <Sidebar
         conversations={conversations}
         activeId={activeId}
-        onSelect={(id) => void selectConversation(id)}
-        onDelete={(id) => void removeConversation(id)}
+        onSelect={selectConversation}
+        onDelete={removeConversation}
       />
       <main className="flex min-w-0 flex-1 flex-col">
         <Messages

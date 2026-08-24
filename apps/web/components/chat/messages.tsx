@@ -3,10 +3,11 @@
 import { CloudSun, LoaderCircle } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+import type { ChatMessage } from "@mecha/api-client";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { UiMessage } from "@/hooks/use-chat";
 import { cn } from "@/lib/utils";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -22,7 +23,7 @@ const SUGGESTIONS = [
 ];
 
 interface MessagesProps {
-  messages: UiMessage[];
+  messages: ChatMessage[];
   streaming: boolean;
   activeTool: string | null;
   error: string | null;
