@@ -5,8 +5,8 @@ agent served by FastAPI, streamed over SSE into a Next.js chat UI built with
 [shadcn/ui](https://ui.shadcn.com) (Base UI) and Tailwind CSS. Derived from
 [alloy](https://github.com/builtbystef/alloy): [Vite+](https://viteplus.dev)
 (`vp`) and pnpm run the TypeScript side; [uv](https://docs.astral.sh/uv) and
-ruff/ty run the Python side, with a generated, fully typed API client bonding
-the two.
+ruff/ty run the Python side, with a generated, fully typed API client
+connecting the two.
 
 The demo agent answers weather questions with live
 [Open-Meteo](https://open-meteo.com) data (free, no API key, CC-BY 4.0) via
@@ -33,7 +33,8 @@ pnpm dev            # FastAPI on :8000 + Next.js on :3000, together
 The agent is provider-agnostic: `MECHA_MODEL` is a Pydantic AI model string
 like `anthropic:claude-sonnet-4-6` or `openai:gpt-5.2`, and the matching
 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` must be set. `MECHA_MODEL=test` runs
-Pydantic AI's `TestModel` — no key, useful for poking at the plumbing.
+Pydantic AI's `TestModel` — no key needed, useful for trying the app without
+a provider.
 
 ## Layout
 
@@ -85,13 +86,13 @@ pnpm run ci         # everything CI runs (bare `pnpm ci` is pnpm's clean-install
 `POST /api/conversations/{id}/messages` runs the agent with
 `agent.run_stream_events()` and translates Pydantic AI events into a small SSE
 vocabulary (`text-delta`, `tool-call`, `tool-result`, `done`, `error`) that
-`apps/web/hooks/use-chat.ts` consumes with `fetch` + a tiny SSE parser (the
-endpoint streams over POST, so `EventSource` doesn't apply).
+`apps/web/hooks/use-chat.ts` reads with `fetch` and a small SSE parser (the
+endpoint streams over POST, which `EventSource` can't do).
 
 Completed runs are appended to SQLite (`store.py`) as
 `ModelMessagesTypeAdapter` JSON; the accumulated history is passed back as
-`message_history=` on the next turn. The UI's message list is a projection of
-that same history, so refreshes reconstruct the chat exactly.
+`message_history=` on the next turn. The UI's message list is built from that
+same history, so a refresh restores the chat exactly.
 
 On the client, [TanStack Query](https://tanstack.com/query/latest) owns the
 server state: the conversation list and message history are queries (shared
@@ -100,7 +101,7 @@ SSE stream writes into the message cache with `setQueryData`, so fetched and
 streamed data render through one path. Mutations invalidate the conversation
 list — titles are assigned server-side from the first message. The messages
 query is disabled while a stream is in flight so a background refetch can't
-clobber the not-yet-persisted optimistic messages.
+overwrite the not-yet-persisted messages.
 
 ## The typed API boundary
 

@@ -35,15 +35,14 @@ peerDependencyRules:
 # New versions must be at least 4 days old before pnpm will resolve them.
 minimumReleaseAge: 5760
 
-# No dependency may run lifecycle (install/postinstall) scripts unless it is
-# explicitly reviewed and listed in allowBuilds. Install fails loudly instead
-# of silently skipping unreviewed build scripts.
+# Dependencies may not run install scripts unless reviewed and listed in
+# allowBuilds; install fails loudly otherwise.
 strictDepBuilds: true
 # sharp: Next.js image optimization — native binary, reviewed and trusted.
 allowBuilds: { sharp: true }
 
 # Transitive dependencies must come from trusted registries — no git or
-# tarball URLs below the direct-dependency level.
+# tarball URLs.
 blockExoticSubdeps: true
 
 # Refuse versions whose publisher trust level regressed (e.g. provenance

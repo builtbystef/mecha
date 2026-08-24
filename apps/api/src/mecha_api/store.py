@@ -1,8 +1,8 @@
 """SQLite persistence for conversations and their model-message history.
 
-Each agent run appends one row holding that run's new messages, serialized
-with pydantic-ai's `ModelMessagesTypeAdapter`; a conversation's full history
-is the concatenation of its runs, ready to pass back as `message_history=`.
+Each agent run appends one row with that run's new messages (serialized with
+pydantic-ai's `ModelMessagesTypeAdapter`); a conversation's history is all
+its runs in order, ready to pass back as `message_history=`.
 """
 
 import uuid

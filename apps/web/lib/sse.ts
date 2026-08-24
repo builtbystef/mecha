@@ -6,8 +6,8 @@ export interface SseEvent {
 /**
  * Parse a fetch response body as a Server-Sent Events stream.
  *
- * The chat endpoint streams over POST, which EventSource can't do — so the
- * body is read manually and split on the blank-line event boundary.
+ * Needed because the chat endpoint streams over POST, which EventSource
+ * can't do.
  */
 export async function* readSseStream(body: ReadableStream<Uint8Array>): AsyncGenerator<SseEvent> {
   const reader = body.getReader();

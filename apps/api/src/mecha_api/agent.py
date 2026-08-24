@@ -1,9 +1,7 @@
-"""The mecha agent: provider-agnostic, tool-calling, dependency-injected.
+"""The mecha agent and its tools.
 
-The agent is defined without a model; the "<provider>:<model>" string from
-settings is passed per run (`agent.run(..., model=...)`), which keeps this
-module import-safe and lets tests swap in TestModel/FunctionModel via
-`agent.override()`.
+No model is set here: the "<provider>:<model>" string from settings is passed
+per run, so tests can swap in fake models via `agent.override()`.
 """
 
 from dataclasses import dataclass
@@ -19,7 +17,7 @@ from mecha_api import weather
 
 @dataclass
 class AgentDeps:
-    """Runtime dependencies injected into every tool call via `ctx.deps`."""
+    """Dependencies passed to every tool call via `ctx.deps`."""
 
     http_client: httpx.AsyncClient
 

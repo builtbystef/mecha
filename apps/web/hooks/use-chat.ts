@@ -8,11 +8,10 @@ import { conversationsQuery, messagesQuery } from "@/lib/queries";
 import { readSseStream } from "@/lib/sse";
 
 /**
- * Chat state. TanStack Query owns the server state (conversation list,
- * message history); sending a message streams the agent's SSE events (see
- * apps/api chat.py for the vocabulary) straight into the query cache with
- * setQueryData, so the UI reads from one source whether the data came from a
- * fetch or a live stream.
+ * Chat state. TanStack Query holds the conversation list and message
+ * history; sending a message streams the agent's SSE events (see apps/api
+ * chat.py) into the same query cache, so fetched and streamed data render
+ * through one path.
  */
 export function useChat() {
   const queryClient = useQueryClient();
@@ -23,9 +22,8 @@ export function useChat() {
 
   const { data: conversations = [] } = useQuery(conversationsQuery);
 
-  // Disabled while streaming: a background refetch (window refocus, etc.)
-  // would overwrite the optimistic cache with the not-yet-persisted history.
-  // The cached data keeps rendering while the query is disabled.
+  // Disabled while streaming: a background refetch would overwrite the
+  // not-yet-persisted messages. The cached data keeps rendering meanwhile.
   const { data: messages = [] } = useQuery({
     ...messagesQuery(activeId),
     enabled: activeId !== null && !streaming,
@@ -58,8 +56,8 @@ export function useChat() {
           return;
         }
         conversationId = data.id;
-        // Seed the cache so the messages query mounts fresh instead of
-        // racing the optimistic updates below with a fetch.
+        // Seed the cache so the messages query doesn't race the updates
+        // below with a fetch.
         queryClient.setQueryData(messagesQuery(conversationId).queryKey, []);
         setActiveId(conversationId);
       }

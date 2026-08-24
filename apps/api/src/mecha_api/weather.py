@@ -12,7 +12,6 @@ from pydantic import BaseModel
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
-# WMO weather interpretation codes, as documented by Open-Meteo.
 WMO_WEATHER_CODES: dict[int, str] = {
     0: "clear sky",
     1: "mainly clear",
@@ -50,8 +49,7 @@ class OpenMeteoError(Exception):
 
 
 class Location(BaseModel):
-    # The geocoding API omits empty fields entirely, so everything beyond the
-    # identifying core is optional.
+    # The geocoding API omits empty fields, so most fields are optional.
     name: str
     latitude: float
     longitude: float

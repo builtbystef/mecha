@@ -42,7 +42,7 @@ router = APIRouter(prefix="/api")
 
 DEFAULT_TITLE = "New conversation"
 
-# Caps one run, not the conversation: a hard stop for tool-call loops.
+# Caps a single run (not the conversation) to stop runaway tool-call loops.
 USAGE_LIMITS = UsageLimits(request_limit=8, tool_calls_limit=12)
 
 
@@ -77,7 +77,7 @@ class MessageIn(BaseModel):
 
 
 def to_chat_messages(history: list[ModelMessage]) -> list[ChatMessage]:
-    """Project full model-message history onto displayable chat turns."""
+    """Turn model-message history into displayable user/assistant turns."""
     messages: list[ChatMessage] = []
     for message in history:
         if isinstance(message, ModelRequest):
@@ -184,8 +184,8 @@ async def _stream_agent_run(
 @router.post(
     "/conversations/{conversation_id}/messages",
     operation_id="sendMessage",
-    # The generated client is not used for this endpoint (it streams); the
-    # web app reads the SSE body with fetch directly.
+    # Streams SSE, so the web app reads the body with fetch, not the
+    # generated client.
     response_class=StreamingResponse,
 )
 async def send_message(

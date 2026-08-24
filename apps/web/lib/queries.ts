@@ -2,9 +2,8 @@ import { listConversations, listMessages } from "@mecha/api-client";
 import { queryOptions } from "@tanstack/react-query";
 
 /**
- * queryOptions helpers shared between useQuery and the imperative
- * queryClient calls (setQueryData during streaming, invalidation after
- * mutations), so keys and types are defined in exactly one place.
+ * Shared queryOptions so query keys and types are defined in one place, for
+ * both useQuery and the imperative queryClient calls.
  *
  * Message keys nest under the conversations key; invalidations that mean
  * "just the list" must pass `exact: true`.

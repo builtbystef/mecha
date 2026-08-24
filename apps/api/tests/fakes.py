@@ -19,8 +19,7 @@ GEOCODE_BERLIN = {
             "country": "Germany",
             "admin1": "State of Berlin",
         },
-        # The geocoding API omits empty fields entirely; this mirrors a small
-        # place with no country/admin1/population in the payload.
+        # A small place: the API omitted country/admin1/population.
         {
             "id": 5083330,
             "name": "Berlin",
