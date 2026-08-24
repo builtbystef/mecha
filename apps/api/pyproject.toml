@@ -1,12 +1,16 @@
 [project]
 name = "mecha-api"
 version = "0.1.0"
-description = "FastAPI backend"
+description = "FastAPI backend hosting a Pydantic AI agent"
 requires-python = ">=3.14"
-dependencies = ["fastapi>=0.115", "uvicorn[standard]>=0.52.1"]
-
-[dependency-groups]
-dev = ["httpx>=0.28"]
+dependencies = [
+    "aiosqlite>=0.21",
+    "fastapi>=0.115",
+    "httpx>=0.28",
+    "pydantic-ai-slim[anthropic,openai]>=2.33,<3",
+    "pydantic-settings>=2.10",
+    "uvicorn[standard]>=0.52.1",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.3,<1"]

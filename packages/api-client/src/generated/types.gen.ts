@@ -5,13 +5,45 @@ export type ClientOptions = {
 };
 
 /**
- * Greeting
+ * ChatMessage
  */
-export type Greeting = {
+export type ChatMessage = {
     /**
-     * Message
+     * Role
      */
-    message: string;
+    role: 'user' | 'assistant';
+    /**
+     * Content
+     */
+    content: string;
+};
+
+/**
+ * Conversation
+ */
+export type Conversation = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+};
+
+/**
+ * ConversationCreate
+ */
+export type ConversationCreate = {
+    /**
+     * Title
+     */
+    title?: string;
 };
 
 /**
@@ -32,6 +64,16 @@ export type Health = {
      * Status
      */
     status: string;
+};
+
+/**
+ * MessageIn
+ */
+export type MessageIn = {
+    /**
+     * Content
+     */
+    content: string;
 };
 
 /**
@@ -62,6 +104,142 @@ export type ValidationError = {
     };
 };
 
+export type ListConversationsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/conversations';
+};
+
+export type ListConversationsResponses = {
+    /**
+     * Response Listconversations
+     *
+     * Successful Response
+     */
+    200: Array<Conversation>;
+};
+
+export type ListConversationsResponse = ListConversationsResponses[keyof ListConversationsResponses];
+
+export type CreateConversationData = {
+    /**
+     * Body
+     */
+    body?: ConversationCreate | null;
+    path?: never;
+    query?: never;
+    url: '/api/conversations';
+};
+
+export type CreateConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateConversationError = CreateConversationErrors[keyof CreateConversationErrors];
+
+export type CreateConversationResponses = {
+    /**
+     * Successful Response
+     */
+    201: Conversation;
+};
+
+export type CreateConversationResponse = CreateConversationResponses[keyof CreateConversationResponses];
+
+export type DeleteConversationData = {
+    body?: never;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query?: never;
+    url: '/api/conversations/{conversation_id}';
+};
+
+export type DeleteConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteConversationError = DeleteConversationErrors[keyof DeleteConversationErrors];
+
+export type DeleteConversationResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteConversationResponse = DeleteConversationResponses[keyof DeleteConversationResponses];
+
+export type ListMessagesData = {
+    body?: never;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query?: never;
+    url: '/api/conversations/{conversation_id}/messages';
+};
+
+export type ListMessagesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMessagesError = ListMessagesErrors[keyof ListMessagesErrors];
+
+export type ListMessagesResponses = {
+    /**
+     * Response Listmessages
+     *
+     * Successful Response
+     */
+    200: Array<ChatMessage>;
+};
+
+export type ListMessagesResponse = ListMessagesResponses[keyof ListMessagesResponses];
+
+export type SendMessageData = {
+    body: MessageIn;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query?: never;
+    url: '/api/conversations/{conversation_id}/messages';
+};
+
+export type SendMessageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SendMessageError = SendMessageErrors[keyof SendMessageErrors];
+
+export type SendMessageResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type GetHealthData = {
     body?: never;
     path?: never;
@@ -77,33 +255,3 @@ export type GetHealthResponses = {
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
-
-export type GetGreetingData = {
-    body?: never;
-    path: {
-        /**
-         * Name
-         */
-        name: string;
-    };
-    query?: never;
-    url: '/api/hello/{name}';
-};
-
-export type GetGreetingErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetGreetingError = GetGreetingErrors[keyof GetGreetingErrors];
-
-export type GetGreetingResponses = {
-    /**
-     * Successful Response
-     */
-    200: Greeting;
-};
-
-export type GetGreetingResponse = GetGreetingResponses[keyof GetGreetingResponses];

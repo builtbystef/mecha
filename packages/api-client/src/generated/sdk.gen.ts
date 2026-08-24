@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetGreetingData, GetGreetingErrors, GetGreetingResponses, GetHealthData, GetHealthResponses } from './types.gen';
+import type { CreateConversationData, CreateConversationErrors, CreateConversationResponses, DeleteConversationData, DeleteConversationErrors, DeleteConversationResponses, GetHealthData, GetHealthResponses, ListConversationsData, ListConversationsResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, SendMessageData, SendMessageErrors, SendMessageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,11 +19,45 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
+ * List Conversations
+ */
+export const listConversations = <ThrowOnError extends boolean = false>(options?: Options<ListConversationsData, ThrowOnError>): RequestResult<ListConversationsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListConversationsResponses, unknown, ThrowOnError>({ url: '/api/conversations', ...options });
+
+/**
+ * Create Conversation
+ */
+export const createConversation = <ThrowOnError extends boolean = false>(options?: Options<CreateConversationData, ThrowOnError>): RequestResult<CreateConversationResponses, CreateConversationErrors, ThrowOnError> => (options?.client ?? client).post<CreateConversationResponses, CreateConversationErrors, ThrowOnError>({
+    url: '/api/conversations',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+    }
+});
+
+/**
+ * Delete Conversation
+ */
+export const deleteConversation = <ThrowOnError extends boolean = false>(options: Options<DeleteConversationData, ThrowOnError>): RequestResult<DeleteConversationResponses, DeleteConversationErrors, ThrowOnError> => (options.client ?? client).delete<DeleteConversationResponses, DeleteConversationErrors, ThrowOnError>({ url: '/api/conversations/{conversation_id}', ...options });
+
+/**
+ * List Messages
+ */
+export const listMessages = <ThrowOnError extends boolean = false>(options: Options<ListMessagesData, ThrowOnError>): RequestResult<ListMessagesResponses, ListMessagesErrors, ThrowOnError> => (options.client ?? client).get<ListMessagesResponses, ListMessagesErrors, ThrowOnError>({ url: '/api/conversations/{conversation_id}/messages', ...options });
+
+/**
+ * Send Message
+ */
+export const sendMessage = <ThrowOnError extends boolean = false>(options: Options<SendMessageData, ThrowOnError>): RequestResult<SendMessageResponses, SendMessageErrors, ThrowOnError> => (options.client ?? client).post<SendMessageResponses, SendMessageErrors, ThrowOnError>({
+    url: '/api/conversations/{conversation_id}/messages',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Get Health
  */
 export const getHealth = <ThrowOnError extends boolean = false>(options?: Options<GetHealthData, ThrowOnError>): RequestResult<GetHealthResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetHealthResponses, unknown, ThrowOnError>({ url: '/api/health', ...options });
-
-/**
- * Get Greeting
- */
-export const getGreeting = <ThrowOnError extends boolean = false>(options: Options<GetGreetingData, ThrowOnError>): RequestResult<GetGreetingResponses, GetGreetingErrors, ThrowOnError> => (options.client ?? client).get<GetGreetingResponses, GetGreetingErrors, ThrowOnError>({ url: '/api/hello/{name}', ...options });
