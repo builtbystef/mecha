@@ -2,6 +2,7 @@
   "extends": "../../tsconfig/browser.json",
   "compilerOptions": {
     "jsx": "preserve",
+    "paths": { "@/*": ["./*"] },
     // The generated @mecha/api-client runtime is compiled as part of this app
     // (transpilePackages) and doesn't satisfy exactOptionalPropertyTypes.
     "exactOptionalPropertyTypes": false,

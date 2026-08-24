@@ -25,6 +25,10 @@ coverage/
 .next/
 next-env.d.ts
 
+# SQLite conversation store (dev)
+*.db
+*.db-*
+
 # Python
 __pycache__/
 .venv/

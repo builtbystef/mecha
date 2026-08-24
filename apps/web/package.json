@@ -7,10 +7,19 @@
     "start": "next start"
   },
   "dependencies": {
+    "@base-ui/react": "catalog:",
     "@mecha/api-client": "workspace:*",
+    "@tailwindcss/postcss": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "lucide-react": "catalog:",
     "next": "^16",
+    "postcss": "catalog:",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:"
   },
   "devDependencies": {
     "@types/react": "^19",

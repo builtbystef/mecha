@@ -1,24 +1,54 @@
 # Mecha
 
-A Python + TypeScript template: FastAPI backend, Next.js frontend, and a
-generated, fully typed API client bonding the two. [Vite+](https://viteplus.dev)
+An AI-agent application template: a [Pydantic AI](https://pydantic.dev/docs/ai)
+agent served by FastAPI, streamed over SSE into a Next.js chat UI built with
+[shadcn/ui](https://ui.shadcn.com) (Base UI) and Tailwind CSS. Derived from
+[alloy](https://github.com/builtbystef/alloy): [Vite+](https://viteplus.dev)
 (`vp`) and pnpm run the TypeScript side; [uv](https://docs.astral.sh/uv) and
-ruff/ty run the Python side. One command vocabulary covers both.
+ruff/ty run the Python side, with a generated, fully typed API client bonding
+the two.
+
+The demo agent answers weather questions with live
+[Open-Meteo](https://open-meteo.com) data (free, no API key, CC-BY 4.0) via
+three tools: `search_locations` (geocoding), `get_weather_forecast`, and
+`current_datetime`.
 
 ## Requirements
 
 - Node ≥ 24 (pinned in `.node-version`, enforced at install)
 - uv (fetches the Python pinned in `.python-version` automatically)
+- An LLM provider API key (Anthropic, OpenAI, …)
+
+## Setup
+
+```sh
+pnpm install        # TS dependencies
+uv sync             # Python venv + dependencies
+vp config           # once after cloning: activates the pre-commit hook
+
+cp apps/api/.env.example apps/api/.env   # then set MECHA_MODEL + provider key
+pnpm dev            # FastAPI on :8000 + Next.js on :3000, together
+```
+
+The agent is provider-agnostic: `MECHA_MODEL` is a Pydantic AI model string
+like `anthropic:claude-sonnet-4-6` or `openai:gpt-5.2`, and the matching
+`ANTHROPIC_API_KEY` / `OPENAI_API_KEY` must be set. `MECHA_MODEL=test` runs
+Pydantic AI's `TestModel` — no key, useful for poking at the plumbing.
 
 ## Layout
 
 ```text
 ├── apps/
-│   ├── api/            # FastAPI
-│   └── web/            # Next.js
+│   ├── api/            # FastAPI + the Pydantic AI agent
+│   │   └── src/mecha_api/
+│   │       ├── agent.py    # Agent, deps dataclass, tools
+│   │       ├── weather.py  # typed Open-Meteo client
+│   │       ├── chat.py     # conversation CRUD + SSE streaming endpoint
+│   │       ├── store.py    # SQLite persistence for message history
+│   │       └── config.py   # MECHA_* settings
+│   └── web/            # Next.js chat UI (shadcn/ui Base UI + Tailwind v4)
 ├── packages/
 │   └── api-client/     # TS client generated from the FastAPI OpenAPI schema
-├── tools/
 ├── tsconfig/           # shared TypeScript presets (base/node/browser/library)
 ├── pnpm-workspace.yaml # TS workspace + supply-chain policy
 └── pyproject.toml      # uv workspace + ruff/pytest config
@@ -27,68 +57,77 @@ ruff/ty run the Python side. One command vocabulary covers both.
 ## Commands
 
 ```sh
-pnpm install        # TS dependencies
-uv sync             # Python venv + dependencies
-vp config           # once after cloning: activates the pre-commit hook
-
-pnpm dev            # FastAPI on :8000 + Next.js on :3000, together
+pnpm dev            # both servers
 pnpm check          # format + lint + typecheck, both languages
 pnpm check:fix
-pnpm test           # Vitest + pytest
+pnpm test           # Vitest + pytest (agent tests run against fake models)
 pnpm build          # export schema → generate client → next build, in order
 pnpm run ci         # everything CI runs (bare `pnpm ci` is pnpm's clean-install)
 ```
 
-Root scripts fan out: `vp check`/`vp test` cover TypeScript, then
-`vp run -r <script>` runs each project's own `check`/`test`/`build` — which is
-how the Python tools (ruff, ty, pytest) join the same commands. `apps/api` has
-a thin `package.json` whose scripts call `uv run …`; that shim is what lets
-`vp run` cache and order Python tasks alongside TS ones.
+## The agent
+
+`apps/api/src/mecha_api/agent.py` defines a module-level `Agent` with:
+
+- **No fixed model** — the settings string is passed per run, so tests swap in
+  `TestModel`/`FunctionModel` via `agent.override()` and never hit a provider
+  (`ALLOW_MODEL_REQUESTS = False` in `tests/conftest.py`).
+- **Typed dependencies** — tools receive an `httpx.AsyncClient` through
+  `RunContext[AgentDeps]`; tests inject a `MockTransport` client.
+- **Validated tool args** — pydantic `Field` constraints on coordinates and
+  forecast days; violations are fed back to the model as retries, and tools
+  raise `ModelRetry` with actionable hints (e.g. location not found).
+- **Usage limits** — each run is capped (`UsageLimits`) to stop tool-call
+  loops.
+
+### Streaming and persistence
+
+`POST /api/conversations/{id}/messages` runs the agent with
+`agent.run_stream_events()` and translates Pydantic AI events into a small SSE
+vocabulary (`text-delta`, `tool-call`, `tool-result`, `done`, `error`) that
+`apps/web/hooks/use-chat.ts` consumes with `fetch` + a tiny SSE parser (the
+endpoint streams over POST, so `EventSource` doesn't apply).
+
+Completed runs are appended to SQLite (`store.py`) as
+`ModelMessagesTypeAdapter` JSON; the accumulated history is passed back as
+`message_history=` on the next turn. The UI's message list is a projection of
+that same history, so refreshes reconstruct the chat exactly.
 
 ## The typed API boundary
 
 `apps/api`'s `build` dumps the FastAPI OpenAPI schema to `openapi.json`;
 `packages/api-client`'s `build` regenerates a typed fetch client from it
-([@hey-api/openapi-ts](https://heyapi.dev)). The client depends on `api` in its
-`package.json`, so `pnpm build` always runs them in order. Both the schema and
-the generated client are committed — a fresh clone typechecks without running
-Python, and CI's `contract` job regenerates both and fails on any diff, so they
-can never drift from the backend.
-
-After changing an endpoint:
+([@hey-api/openapi-ts](https://heyapi.dev)). Both are committed, and CI's
+`contract` job fails on any drift. Conversation CRUD in the web app goes
+through this client; only the SSE stream is read with raw `fetch`. After
+changing an endpoint:
 
 ```sh
 pnpm build          # or: pnpm --filter api build && pnpm --filter @mecha/api-client build
 ```
 
-In dev, the browser only ever talks to Next.js — `next.config.ts` rewrites
-`/api/*` to `http://localhost:8000` (override with `API_URL`), so there is no
-CORS setup. Give new FastAPI routes an `operation_id`; it becomes the generated
+In dev the browser only talks to Next.js — `next.config.ts` rewrites `/api/*`
+to `http://localhost:8000` (override with `API_URL`), so there is no CORS
+setup. Give new FastAPI routes an `operation_id`; it becomes the generated
 function name.
 
-## Adding projects
+## UI components
 
-TypeScript projects drop into `apps/*`, `packages/*`, or `tools/*` — the
-workspace globs already cover them; extend a preset from `tsconfig/` as in
-carbon-fiber. Python projects also get listed in `[tool.uv.workspace] members`
-in the root `pyproject.toml`, plus a package.json shim with `check`/`test`
-scripts if they should participate in the root commands.
-
-Two TypeScript-version caveats, both from the TS 7 (tsgo) catalog default:
-
-- `packages/api-client` pins TypeScript 5 locally — `@hey-api/openapi-ts`
-  needs the old in-process compiler API.
-- `apps/web` sets `experimental.useTypeScriptCli` so `next build` typechecks
-  through the TS 7 CLI.
+shadcn/ui with the Base UI (`@base-ui/react`) primitives, `base-nova` style:
+components are vendored source under `apps/web/components/ui`, added via
+`npx shadcn@latest add <component>`. One deviation from a stock install:
+`app/shadcn.css` is a vendored copy of the `shadcn` package's `tailwind.css`
+(keyframes + data-attribute variants) because that package's transitive
+dependencies fail this workspace's pnpm trust policy — see the file header.
 
 ## Supply-chain policy
 
-`pnpm-workspace.yaml` carries the full carbon-fiber policy: `minimumReleaseAge`
-(4 days), `strictDepBuilds` + explicit `allowBuilds` (only `sharp`),
+`pnpm-workspace.yaml` carries the full policy: `minimumReleaseAge` (4 days),
+`strictDepBuilds` + explicit `allowBuilds` (only `sharp`),
 `blockExoticSubdeps`, `trustPolicy: no-downgrade`, `verifyDepsBeforeRun`, and
 `engineStrict`. The Python side mirrors it: `uv.lock` is hash-pinned and CI
-installs with `uv sync --locked`; Dependabot covers npm, uv, and GitHub Actions
-weekly with a 4-day cooldown.
+installs with `uv sync --locked`; Dependabot covers npm, uv, and GitHub
+Actions weekly with a 4-day cooldown.
 
 CI (`.github/workflows/ci.yml`) runs three least-privilege, SHA-pinned jobs:
 `web` (vp check/test + builds), `api` (ruff, ty, pytest), and `contract`
