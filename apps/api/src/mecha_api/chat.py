@@ -34,7 +34,7 @@ from pydantic_ai import (
 )
 
 from mecha_api.agent import AgentDeps, agent
-from mecha_api.config import Settings
+from mecha_api.config import AgentSettings
 from mecha_api.store import Conversation, ConversationStore
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ def _store(request: Request) -> ConversationStore:
     return request.app.state.store
 
 
-def _settings(request: Request) -> Settings:
+def _settings(request: Request) -> AgentSettings:
     return request.app.state.settings
 
 
@@ -60,7 +60,7 @@ def _agent_deps(request: Request) -> AgentDeps:
 
 
 StoreDep = Annotated[ConversationStore, Depends(_store)]
-SettingsDep = Annotated[Settings, Depends(_settings)]
+SettingsDep = Annotated[AgentSettings, Depends(_settings)]
 AgentDepsDep = Annotated[AgentDeps, Depends(_agent_deps)]
 
 

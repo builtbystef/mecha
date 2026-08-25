@@ -5,11 +5,13 @@ description = "FastAPI backend hosting a Pydantic AI agent"
 requires-python = ">=3.14"
 dependencies = [
   "aiosqlite>=0.21",
+  "alembic>=1.16",
   "fastapi>=0.115",
   "httpx>=0.28",
   "logfire[fastapi,httpx]>=4",
   "pydantic-ai-slim[anthropic,openai]>=2.33,<3",
   "pydantic-settings>=2.10",
+  "sqlalchemy[asyncio]>=2.0",
   "uvicorn[standard]>=0.52.1",
 ]
 

@@ -18,7 +18,10 @@ def anyio_backend() -> str:
 @pytest.fixture
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setenv("MECHA_MODEL", "test")
-    monkeypatch.setenv("MECHA_DATABASE_PATH", str(tmp_path / "test.db"))
-    # Context manager so the lifespan (store + http client) runs.
+    monkeypatch.setenv(
+        "MECHA_DATABASE_URL", f"sqlite+aiosqlite:///{tmp_path / 'test.db'}"
+    )
+    # Context manager so the lifespan runs — which migrates the empty
+    # database, so every test also exercises `alembic upgrade head`.
     with TestClient(app) as test_client:
         yield test_client

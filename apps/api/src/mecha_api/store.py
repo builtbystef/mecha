@@ -1,126 +1,120 @@
-"""SQLite persistence for conversations and their model-message history.
+"""Conversation persistence, over SQLAlchemy's async ORM.
 
 Each agent run appends one row with that run's new messages (serialized with
 pydantic-ai's `ModelMessagesTypeAdapter`); a conversation's history is all
 its runs in order, ready to pass back as `message_history=`.
+
+The engine is built from a URL, so moving off SQLite is a config change:
+`postgresql+asyncpg://…` with `asyncpg` installed, and nothing here changes.
 """
 
 import uuid
-from datetime import UTC, datetime
-from pathlib import Path
+from datetime import datetime
+from typing import Any
 
-import aiosqlite
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter
+from sqlalchemy import event, select
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    async_sessionmaker,
+    create_async_engine,
+)
 
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS conversations (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    created_at TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS runs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    conversation_id TEXT NOT NULL
-        REFERENCES conversations(id) ON DELETE CASCADE,
-    created_at TEXT NOT NULL,
-    messages TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS runs_by_conversation ON runs(conversation_id);
-"""
+from mecha_api import tables
 
 
-def _now() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
-
-
+# The API-facing shape of a conversation; the ORM row is
+# `tables.Conversation`. A docstring here would land in the OpenAPI schema
+# and from there in the generated client, so this stays a comment.
 class Conversation(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     title: str
     created_at: datetime
 
 
+def _sqlite_pragmas(dbapi_connection: Any, _record: Any) -> None:
+    """SQLite defaults a server process wants and doesn't get for free.
+
+    Foreign keys are off per connection unless asked for, so the runs cascade
+    would silently not fire; the rollback journal blocks readers for the
+    length of a write; and the default busy timeout is zero, which turns any
+    contention straight into "database is locked".
+    """
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.execute("PRAGMA journal_mode = WAL")
+    cursor.execute("PRAGMA busy_timeout = 5000")
+    cursor.close()
+
+
 class ConversationStore:
-    def __init__(self, path: Path | str) -> None:
-        self._path = path
-        self._db: aiosqlite.Connection | None = None
-
-    async def connect(self) -> None:
-        self._db = await aiosqlite.connect(self._path)
-        await self._db.execute("PRAGMA foreign_keys = ON")
-        await self._db.executescript(_SCHEMA)
-        await self._db.commit()
-
-    async def close(self) -> None:
-        if self._db is not None:
-            await self._db.close()
-            self._db = None
+    def __init__(self, url: str) -> None:
+        self._engine: AsyncEngine = create_async_engine(url)
+        if self._engine.dialect.name == "sqlite":
+            # Listens on the sync engine underneath: pragmas run on the raw
+            # DBAPI connection, which asyncio drivers reach through it too.
+            event.listen(self._engine.sync_engine, "connect", _sqlite_pragmas)
+        self._session = async_sessionmaker(self._engine, expire_on_commit=False)
 
     @property
-    def _conn(self) -> aiosqlite.Connection:
-        if self._db is None:
-            raise RuntimeError("ConversationStore.connect() was never called")
-        return self._db
+    def engine(self) -> AsyncEngine:
+        return self._engine
+
+    async def close(self) -> None:
+        await self._engine.dispose()
 
     async def create_conversation(self, title: str) -> Conversation:
-        conversation = Conversation(id=uuid.uuid4().hex, title=title, created_at=_now())
-        await self._conn.execute(
-            "INSERT INTO conversations (id, title, created_at) VALUES (?, ?, ?)",
-            (conversation.id, conversation.title, conversation.created_at.isoformat()),
-        )
-        await self._conn.commit()
-        return conversation
+        row = tables.Conversation(id=uuid.uuid4().hex, title=title)
+        async with self._session.begin() as session:
+            session.add(row)
+        return Conversation.model_validate(row)
 
     async def get_conversation(self, conversation_id: str) -> Conversation | None:
-        cursor = await self._conn.execute(
-            "SELECT id, title, created_at FROM conversations WHERE id = ?",
-            (conversation_id,),
-        )
-        row = await cursor.fetchone()
-        if row is None:
-            return None
-        return Conversation(id=row[0], title=row[1], created_at=row[2])
+        async with self._session() as session:
+            row = await session.get(tables.Conversation, conversation_id)
+            return None if row is None else Conversation.model_validate(row)
 
     async def list_conversations(self) -> list[Conversation]:
-        cursor = await self._conn.execute(
-            "SELECT id, title, created_at FROM conversations ORDER BY created_at DESC"
-        )
-        rows = await cursor.fetchall()
-        return [
-            Conversation(id=row[0], title=row[1], created_at=row[2]) for row in rows
-        ]
+        async with self._session() as session:
+            rows = await session.scalars(
+                select(tables.Conversation).order_by(
+                    tables.Conversation.created_at.desc(), tables.Conversation.id
+                )
+            )
+            return [Conversation.model_validate(row) for row in rows]
 
     async def rename_conversation(self, conversation_id: str, title: str) -> None:
-        await self._conn.execute(
-            "UPDATE conversations SET title = ? WHERE id = ?",
-            (title, conversation_id),
-        )
-        await self._conn.commit()
+        async with self._session.begin() as session:
+            row = await session.get(tables.Conversation, conversation_id)
+            if row is not None:
+                row.title = title
 
     async def delete_conversation(self, conversation_id: str) -> bool:
-        cursor = await self._conn.execute(
-            "DELETE FROM conversations WHERE id = ?", (conversation_id,)
-        )
-        await self._conn.commit()
-        return cursor.rowcount > 0
+        async with self._session.begin() as session:
+            row = await session.get(tables.Conversation, conversation_id)
+            if row is None:
+                return False
+            await session.delete(row)
+            return True
 
     async def append_run(
         self, conversation_id: str, messages: list[ModelMessage]
     ) -> None:
         payload = ModelMessagesTypeAdapter.dump_json(messages).decode()
-        await self._conn.execute(
-            "INSERT INTO runs (conversation_id, created_at, messages) VALUES (?, ?, ?)",
-            (conversation_id, _now(), payload),
-        )
-        await self._conn.commit()
+        async with self._session.begin() as session:
+            session.add(tables.Run(conversation_id=conversation_id, messages=payload))
 
     async def load_history(self, conversation_id: str) -> list[ModelMessage]:
-        cursor = await self._conn.execute(
-            "SELECT messages FROM runs WHERE conversation_id = ? ORDER BY id",
-            (conversation_id,),
-        )
-        rows = await cursor.fetchall()
+        async with self._session() as session:
+            payloads = await session.scalars(
+                select(tables.Run.messages)
+                .where(tables.Run.conversation_id == conversation_id)
+                .order_by(tables.Run.id)
+            )
         history: list[ModelMessage] = []
-        for (payload,) in rows:
+        for payload in payloads:
             history.extend(ModelMessagesTypeAdapter.validate_json(payload))
         return history

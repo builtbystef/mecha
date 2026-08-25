@@ -2,13 +2,12 @@
 
 Every variable uses the ``MECHA_`` prefix — see `.env.example`.
 
-Two classes, because they are read at different times. `ObservabilitySettings`
-has no required field, so tracing can be set up at import; `Settings` requires
-a model and is read at startup, late enough that the schema export and the
-resulting failure are both traced.
+Split by owner, because each is read at a different moment. `AgentSettings`
+is the only one with a required field, so it is read at startup and fails
+fast; the other two have full defaults and are read wherever they are needed
+— tracing at import, the database URL from Alembic's `env.py` as well as the
+app, so a migration never needs a model string set.
 """
-
-from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,7 +15,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _CONFIG = SettingsConfigDict(env_prefix="MECHA_", env_file=".env", extra="ignore")
 
 
-class Settings(BaseSettings):
+class AgentSettings(BaseSettings):
     model_config = _CONFIG
 
     model: str = Field(
@@ -26,9 +25,26 @@ class Settings(BaseSettings):
             "provider key (ANTHROPIC_API_KEY / OPENAI_API_KEY) must be set too."
         ),
     )
-    database_path: Path = Field(
-        default=Path("mecha.db"),
-        description="SQLite file for the conversation store.",
+
+
+class DatabaseSettings(BaseSettings):
+    model_config = _CONFIG
+
+    database_url: str = Field(
+        default="sqlite+aiosqlite:///mecha.db",
+        description=(
+            "SQLAlchemy async URL. Relative SQLite paths resolve against "
+            "apps/api. Postgres needs asyncpg installed: "
+            '"postgresql+asyncpg://user:pass@host/db".'
+        ),
+    )
+    migrate_on_startup: bool = Field(
+        default=True,
+        description=(
+            "Run `alembic upgrade head` when the app starts. Convenient for "
+            "one process; turn it off where several replicas start at once "
+            "and migrate from a release step instead."
+        ),
     )
 
 

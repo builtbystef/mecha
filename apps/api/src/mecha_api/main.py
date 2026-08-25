@@ -5,8 +5,8 @@ import httpx
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from mecha_api import chat, observability
-from mecha_api.config import Settings
+from mecha_api import chat, migrate, observability
+from mecha_api.config import AgentSettings, DatabaseSettings
 from mecha_api.store import ConversationStore
 
 
@@ -15,9 +15,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Fails fast on missing MECHA_MODEL — see apps/api/.env.example. Settings
     # are read here, not at import, so `export.py` can dump the schema
     # without a configured environment.
-    settings = Settings()
-    store = ConversationStore(settings.database_path)
-    await store.connect()
+    settings = AgentSettings()
+    database = DatabaseSettings()
+    store = ConversationStore(database.database_url)
+    if database.migrate_on_startup:
+        await migrate.upgrade_to_head(store.engine)
     async with httpx.AsyncClient(timeout=httpx.Timeout(15)) as http_client:
         observability.instrument_http_client(http_client)
         app.state.settings = settings

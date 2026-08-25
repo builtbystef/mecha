@@ -41,13 +41,17 @@ a provider.
 ```text
 ├── apps/
 │   ├── api/            # FastAPI + the Pydantic AI agent
-│   │   └── src/mecha_api/
-│   │       ├── agent.py    # Agent, deps dataclass, tools
-│   │       ├── weather.py  # typed Open-Meteo client
-│   │       ├── chat.py     # conversation CRUD + SSE streaming endpoint
-│   │       ├── store.py    # SQLite persistence for message history
-│   │       ├── observability.py # OpenTelemetry tracing
-│   │       └── config.py   # MECHA_* settings
+│   │   ├── src/mecha_api/
+│   │   │   ├── agent.py    # Agent, deps dataclass, tools
+│   │   │   ├── weather.py  # typed Open-Meteo client
+│   │   │   ├── chat.py     # conversation CRUD + SSE streaming endpoint
+│   │   │   ├── tables.py   # SQLAlchemy tables (what Alembic diffs against)
+│   │   │   ├── store.py    # conversation + message-history persistence
+│   │   │   ├── migrate.py  # runs Alembic from the app at startup
+│   │   │   ├── observability.py # OpenTelemetry tracing
+│   │   │   └── config.py   # MECHA_* settings
+│   │   ├── migrations/ # Alembic revisions
+│   │   └── alembic.ini
 │   └── web/            # Next.js chat UI (shadcn/ui Base UI + Tailwind v4)
 ├── packages/
 │   └── api-client/     # TS client generated from the FastAPI OpenAPI schema
@@ -65,6 +69,9 @@ pnpm check:fix
 pnpm test           # Vitest + pytest (agent tests run against fake models)
 pnpm build          # export schema → generate client → next build, in order
 pnpm run ci         # everything CI runs (bare `pnpm ci` is pnpm's clean-install)
+
+pnpm --filter api migrate              # alembic upgrade head
+pnpm --filter api migrate:new "add x"  # autogenerate a revision from tables.py
 ```
 
 ## The agent
@@ -90,7 +97,7 @@ vocabulary (`text-delta`, `tool-call`, `tool-result`, `done`, `error`) that
 `apps/web/hooks/use-chat.ts` reads with `fetch` and a small SSE parser (the
 endpoint streams over POST, which `EventSource` can't do).
 
-Completed runs are appended to SQLite (`store.py`) as
+Completed runs are appended to the database (`store.py`) as
 `ModelMessagesTypeAdapter` JSON; the accumulated history is passed back as
 `message_history=` on the next turn. The UI's message list is built from that
 same history, so a refresh restores the chat exactly.
@@ -103,6 +110,36 @@ streamed data render through one path. Mutations invalidate the conversation
 list — titles are assigned server-side from the first message. The messages
 query is disabled while a stream is in flight so a background refetch can't
 overwrite the not-yet-persisted messages.
+
+## Database and migrations
+
+`tables.py` declares the schema with SQLAlchemy's async ORM; `store.py` is
+the only thing that touches it. `MECHA_DATABASE_URL` picks the backend, so
+production means a URL change rather than a rewrite:
+
+```sh
+MECHA_DATABASE_URL=postgresql+asyncpg://user:pass@host/mecha  # + uv add asyncpg
+```
+
+Alembic owns the schema. `migrations/env.py` reads that same setting, so the
+CLI and the app can't end up on different databases:
+
+```sh
+pnpm --filter api migrate:new "add users"   # diff tables.py → new revision
+pnpm --filter api migrate                   # apply
+```
+
+The app also migrates itself at startup, which keeps `pnpm dev` a single
+command. Set `MECHA_MIGRATE_ON_STARTUP=false` and migrate from a release
+step once more than one replica starts at a time.
+
+Two details worth keeping if you fork this: a `connect` hook sets SQLite's
+`foreign_keys`, `journal_mode=WAL`, and `busy_timeout` — without the first,
+deleting a conversation silently leaves its runs behind — and `UtcDateTime`
+normalizes timestamps in both directions, since SQLite drops the offset and
+hands back a naive datetime. `test_store.py` fails the build if `tables.py`
+and `migrations/` ever disagree, the same way CI's `contract` job guards the
+OpenAPI client.
 
 ## Tracing
 

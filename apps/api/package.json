@@ -6,6 +6,8 @@
     "check": "uv run ruff format --check . && uv run ruff check . && uv run ty check",
     "check:fix": "uv run ruff format . && uv run ruff check --fix .",
     "test": "uv run pytest tests",
-    "build": "uv run python -m mecha_api.export openapi.json"
+    "build": "uv run python -m mecha_api.export openapi.json",
+    "migrate": "uv run alembic upgrade head",
+    "migrate:new": "uv run alembic revision --autogenerate -m"
   }
 }
