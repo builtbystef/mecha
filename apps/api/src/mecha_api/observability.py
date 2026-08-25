@@ -4,7 +4,7 @@ Logfire is the OTel SDK: `logfire.configure()` installs the global tracer
 provider that pydantic-ai's own instrumentation writes into. Spans reach
 Logfire when `LOGFIRE_TOKEN` is set and any OTLP collector when
 `OTEL_EXPORTER_OTLP_ENDPOINT` is set. With neither, nothing is exported and
-the app behaves exactly as it did before — unconfigured is a supported state.
+the app behaves exactly as it did before. Unconfigured is a supported state.
 """
 
 import logging

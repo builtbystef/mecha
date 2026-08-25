@@ -1,11 +1,11 @@
 """App settings, read from the environment (and `apps/api/.env` in dev).
 
-Every variable uses the ``MECHA_`` prefix — see `.env.example`.
+Every variable uses the ``MECHA_`` prefix. See `.env.example`.
 
 Split by owner, because each is read at a different moment. `AgentSettings`
 is the only one with a required field, so it is read at startup and fails
-fast; the other two have full defaults and are read wherever they are needed
-— tracing at import, the database URL from Alembic's `env.py` as well as the
+fast. The other two have full defaults and are read wherever they are needed:
+tracing at import, and the database URL from Alembic's `env.py` as well as the
 app, so a migration never needs a model string set.
 """
 
@@ -20,7 +20,7 @@ class AgentSettings(BaseSettings):
 
     model: str = Field(
         description=(
-            'Pydantic AI model string, "<provider>:<model>" — e.g. '
+            'Pydantic AI model string, "<provider>:<model>", e.g. '
             '"anthropic:claude-sonnet-4-6" or "openai:gpt-5.2". The matching '
             "provider key (ANTHROPIC_API_KEY / OPENAI_API_KEY) must be set too."
         ),
@@ -57,7 +57,7 @@ class ObservabilitySettings(BaseSettings):
     )
     environment: str = Field(
         default="development",
-        description='Deployment environment tag on spans — e.g. "production".',
+        description='Deployment environment tag on spans, e.g. "production".',
     )
     trace_content: bool = Field(
         default=True,

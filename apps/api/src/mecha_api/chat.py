@@ -147,8 +147,8 @@ async def _stream_agent_run(
     conversation_id: str,
 ) -> AsyncIterator[str]:
     new_messages: list[ModelMessage] | None = None
-    # Groups this turn's model requests and tool calls — which pydantic-ai
-    # traces on its own — under one span carrying the conversation id.
+    # Groups this turn's model requests and tool calls, which pydantic-ai
+    # traces on its own, under one span carrying the conversation id.
     with logfire.span("chat turn", conversation_id=conversation_id) as span:
         try:
             async with agent.run_stream_events(

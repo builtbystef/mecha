@@ -21,7 +21,7 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
     monkeypatch.setenv(
         "MECHA_DATABASE_URL", f"sqlite+aiosqlite:///{tmp_path / 'test.db'}"
     )
-    # Context manager so the lifespan runs — which migrates the empty
+    # Context manager so the lifespan runs, which migrates the empty
     # database, so every test also exercises `alembic upgrade head`.
     with TestClient(app) as test_client:
         yield test_client

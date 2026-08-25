@@ -38,10 +38,10 @@ minimumReleaseAge: 5760
 # Dependencies may not run install scripts unless reviewed and listed in
 # allowBuilds; install fails loudly otherwise.
 strictDepBuilds: true
-# sharp: Next.js image optimization — native binary, reviewed and trusted.
+# sharp: Next.js image optimization, a native binary, reviewed and trusted.
 allowBuilds: { sharp: true }
 
-# Transitive dependencies must come from trusted registries — no git or
+# Transitive dependencies must come from trusted registries: no git or
 # tarball URLs.
 blockExoticSubdeps: true
 

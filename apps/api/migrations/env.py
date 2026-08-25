@@ -3,8 +3,8 @@
 Two entry points share it:
 
 - the CLI (`alembic upgrade head`), which builds its own async engine from
-  `MECHA_DATABASE_URL` — the same setting the app reads, so the two can
-  never drift onto different databases;
+  `MECHA_DATABASE_URL`, the same setting the app reads, so the two can never
+  drift onto different databases;
 - the app at startup, which hands over a live connection through
   `config.attributes["connection"]` rather than opening a second one.
 """

@@ -12,7 +12,7 @@ from mecha_api.store import ConversationStore
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    # Fails fast on missing MECHA_MODEL — see apps/api/.env.example. Settings
+    # Fails fast on missing MECHA_MODEL, see apps/api/.env.example. Settings
     # are read here, not at import, so `export.py` can dump the schema
     # without a configured environment.
     settings = AgentSettings()

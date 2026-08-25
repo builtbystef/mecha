@@ -1,6 +1,6 @@
 {
   // Runtime-neutral strictness shared by every workspace project.
-  // Projects don't extend this directly — they extend an environment preset
+  // Projects don't extend this directly; they extend an environment preset
   // from this folder (node.json, browser.json, library.json).
   "compilerOptions": {
     "target": "ES2024",

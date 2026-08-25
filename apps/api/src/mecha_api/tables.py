@@ -37,7 +37,7 @@ class UtcDateTime(TypeDecorator[datetime]):
         if value is None:
             return None
         if value.tzinfo is None:
-            raise ValueError("naive datetime — pass an aware one, e.g. now(UTC)")
+            raise ValueError("naive datetime: pass an aware one, e.g. now(UTC)")
         return value.astimezone(UTC)
 
     def process_result_value(
@@ -68,8 +68,8 @@ class Conversation(Base):
         back_populates="conversation",
         cascade="all, delete-orphan",
         # Let the database's ON DELETE CASCADE do the work. Without this the
-        # ORM loads every run just to delete it — which, mid-async, is a
-        # lazy load on a closed greenlet rather than a slow query.
+        # ORM loads every run just to delete it, which mid-async is a lazy
+        # load on a closed greenlet rather than a slow query.
         passive_deletes=True,
     )
 

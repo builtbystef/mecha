@@ -30,7 +30,7 @@ def _upgrade(connection: Connection) -> None:
 async def upgrade_to_head(engine: AsyncEngine) -> None:
     if not ALEMBIC_INI.is_file():
         raise RuntimeError(
-            f"no alembic.ini at {ALEMBIC_INI} — migrate from a checkout and "
+            f"no alembic.ini at {ALEMBIC_INI}: migrate from a checkout and "
             "start with MECHA_MIGRATE_ON_STARTUP=false"
         )
     async with engine.begin() as connection:

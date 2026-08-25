@@ -18,7 +18,7 @@ function makeQueryClient() {
 let browserQueryClient: QueryClient | undefined;
 
 // Per the TanStack Query SSR guide: a fresh client per server render, one
-// shared client in the browser — held outside React state so a suspending
+// shared client in the browser, held outside React state so a suspending
 // initial render can't discard it.
 function getQueryClient() {
   if (environmentManager.isServer()) return makeQueryClient();
