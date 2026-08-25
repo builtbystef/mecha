@@ -14,6 +14,7 @@ import logging
 from collections.abc import AsyncIterator
 from typing import Annotated, Literal
 
+import logfire
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -146,39 +147,55 @@ async def _stream_agent_run(
     conversation_id: str,
 ) -> AsyncIterator[str]:
     new_messages: list[ModelMessage] | None = None
-    try:
-        async with agent.run_stream_events(
-            prompt,
-            deps=deps,
-            model=model,
-            message_history=history,
-            usage_limits=USAGE_LIMITS,
-        ) as events:
-            async for event in events:
-                if isinstance(event, PartStartEvent):
-                    # A text part may start with content already in it.
-                    if isinstance(event.part, TextPart) and event.part.content:
-                        yield _sse("text-delta", {"delta": event.part.content})
-                elif isinstance(event, PartDeltaEvent):
-                    if (
-                        isinstance(event.delta, TextPartDelta)
-                        and event.delta.content_delta
-                    ):
-                        yield _sse("text-delta", {"delta": event.delta.content_delta})
-                elif isinstance(event, FunctionToolCallEvent):
-                    yield _sse("tool-call", {"tool": event.part.tool_name})
-                elif isinstance(event, FunctionToolResultEvent):
-                    yield _sse("tool-result", {"tool": event.part.tool_name})
-                elif isinstance(event, AgentRunResultEvent):
-                    new_messages = event.result.new_messages()
-    except Exception:
-        logger.exception("agent run failed (conversation %s)", conversation_id)
-        yield _sse("error", {"message": "Agent run failed; see server logs."})
-        return
-    # Persist only completed runs, so a failed run can be retried cleanly.
-    if new_messages is not None:
-        await store.append_run(conversation_id, new_messages)
-    yield _sse("done", {"conversationId": conversation_id})
+    # Groups this turn's model requests and tool calls — which pydantic-ai
+    # traces on its own — under one span carrying the conversation id.
+    with logfire.span("chat turn", conversation_id=conversation_id) as span:
+        try:
+            async with agent.run_stream_events(
+                prompt,
+                deps=deps,
+                model=model,
+                message_history=history,
+                usage_limits=USAGE_LIMITS,
+            ) as events:
+                async for event in events:
+                    if isinstance(event, PartStartEvent):
+                        # A text part may start with content already in it.
+                        if isinstance(event.part, TextPart) and event.part.content:
+                            yield _sse("text-delta", {"delta": event.part.content})
+                    elif isinstance(event, PartDeltaEvent):
+                        if (
+                            isinstance(event.delta, TextPartDelta)
+                            and event.delta.content_delta
+                        ):
+                            yield _sse(
+                                "text-delta", {"delta": event.delta.content_delta}
+                            )
+                    elif isinstance(event, FunctionToolCallEvent):
+                        yield _sse("tool-call", {"tool": event.part.tool_name})
+                    elif isinstance(event, FunctionToolResultEvent):
+                        yield _sse("tool-result", {"tool": event.part.tool_name})
+                    elif isinstance(event, AgentRunResultEvent):
+                        new_messages = event.result.new_messages()
+                        usage = event.result.usage
+                        span.set_attributes(
+                            {
+                                "input_tokens": usage.input_tokens,
+                                "output_tokens": usage.output_tokens,
+                                "requests": usage.requests,
+                                "tool_calls": usage.tool_calls,
+                            }
+                        )
+        except Exception:
+            # The span is exited normally, so mark it failed by hand.
+            span.set_level("error")
+            logger.exception("agent run failed (conversation %s)", conversation_id)
+            yield _sse("error", {"message": "Agent run failed; see server logs."})
+            return
+        # Persist only completed runs, so a failed run can be retried cleanly.
+        if new_messages is not None:
+            await store.append_run(conversation_id, new_messages)
+        yield _sse("done", {"conversationId": conversation_id})
 
 
 @router.post(

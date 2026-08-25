@@ -46,6 +46,7 @@ a provider.
 │   │       ├── weather.py  # typed Open-Meteo client
 │   │       ├── chat.py     # conversation CRUD + SSE streaming endpoint
 │   │       ├── store.py    # SQLite persistence for message history
+│   │       ├── observability.py # OpenTelemetry tracing
 │   │       └── config.py   # MECHA_* settings
 │   └── web/            # Next.js chat UI (shadcn/ui Base UI + Tailwind v4)
 ├── packages/
@@ -102,6 +103,31 @@ streamed data render through one path. Mutations invalidate the conversation
 list — titles are assigned server-side from the first message. The messages
 query is disabled while a stream is in flight so a background refetch can't
 overwrite the not-yet-persisted messages.
+
+## Tracing
+
+`observability.py` sets up OpenTelemetry at import, using
+[Logfire](https://pydantic.dev/logfire) as the SDK. One run produces a full
+trace:
+
+```text
+POST /api/conversations/{id}/messages   ← FastAPI
+└── chat turn                           ← conversation id, tokens, tool calls
+    └── invoke_agent agent               ← pydantic-ai
+        ├── chat anthropic:claude-…      ← prompt, reply, usage per request
+        └── execute_tool search_locations ← args and result
+```
+
+Nothing is exported until a sink is set: `LOGFIRE_TOKEN` sends to Logfire,
+`OTEL_EXPORTER_OTLP_ENDPOINT` to any OTLP collector (Jaeger, Grafana,
+Honeycomb, …). With neither, the app runs exactly as it did untraced — no
+network calls, no startup failure.
+
+Prompts and replies are span attributes by default; set
+`MECHA_TRACE_CONTENT=false` where conversations carry data that must not
+leave the process. Stdlib log records are bridged onto the active span, so
+`logger.exception` lands on the trace that failed. `/api/health` is excluded,
+since load balancers poll it.
 
 ## The typed API boundary
 
