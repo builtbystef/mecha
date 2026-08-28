@@ -6,7 +6,6 @@ import { Providers } from "@/app/providers";
 
 import "./globals.css";
 
-// globals.css maps the `font-sans` utility to this variable.
 const sans = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {

@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 const TOOL_LABELS: Record<string, string> = {
   search_locations: "Looking up the location…",
   get_weather_forecast: "Fetching the forecast…",
-  current_datetime: "Checking the clock…",
+  current_datetime: "Checking the time…",
 };
 
 const SUGGESTIONS = [

@@ -6,9 +6,6 @@ export default defineConfig({
     "*.py": ["uv run ruff format", "uv run ruff check --fix"],
   },
   fmt: {
-    // Generated files keep their generators' formatting so the CI contract
-    // job can diff them against regenerated output. Agent tooling is
-    // vendored content, not project source.
     ignorePatterns: ["**/src/generated/**", "**/openapi.json", "**/.agents/**", "**/.claude/**"],
   },
   lint: {
