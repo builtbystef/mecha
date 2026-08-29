@@ -3,9 +3,6 @@
 Each agent run appends one row with that run's new messages (serialized with
 pydantic-ai's `ModelMessagesTypeAdapter`); a conversation's history is all
 its runs in order, ready to pass back as `message_history=`.
-
-The engine is built from a URL, so moving off SQLite is a config change:
-`postgresql+asyncpg://…` with `asyncpg` installed, and nothing here changes.
 """
 
 import uuid
