@@ -22,7 +22,7 @@ catalog:
   # Bump these two together. A split pair fails at startup. Dependabot misses
   # the coupling through the npm: alias, so update both by hand.
   vite: npm:@voidzero-dev/vite-plus-core@0.2.9
-  vite-plus: 0.2.9
+  vite-plus: 0.3.0
 overrides:
   vite: "catalog:"
 peerDependencyRules:
