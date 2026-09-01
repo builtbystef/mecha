@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import httpx
@@ -11,7 +11,7 @@ from mecha_api.store import ConversationStore
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Fails fast on missing MECHA_MODEL, see apps/api/.env.example. Settings
     # are read here, not at import, so `export.py` can dump the schema
     # without a configured environment.
