@@ -11,7 +11,7 @@
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.99.0",
     "api": "workspace:*",
-    "typescript": "^5.9.0"
+    "typescript": "^7.0.2"
   },
   "//typescript": "Deliberately pinned to 5.x instead of the workspace catalog (^7). openapi-ts reads ts.SyntaxKind off the TypeScript compiler API, which the 7.x native port does not expose, so `openapi-ts` dies with `Cannot read properties of undefined (reading 'AnyKeyword')`. Move to catalog: only once openapi-ts supports TypeScript 7."
 }
