@@ -7,6 +7,9 @@ updates:
     # Mirrors pnpm's minimumReleaseAge (5760 min): don't propose versions younger than 4 days.
     cooldown:
       default-days: 4
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       # vite-plus and vite need a manual bump together. See: pnpm-workspace.yaml
       vite-plus:
